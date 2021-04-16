@@ -55,7 +55,7 @@ PathTracking::PathTracking(int xmode){
     settingPx(3,0.5,0.5,5.0,5.45);
     settingPy(3,-0.5,-2.0,-7.5,-4.5);
     settingPx(4,5.45,5.1,4.6,4.9);
-    settingPy(3,-4.5,-2.5,-3.5,0);
+    settingPy(4,-4.5,-2.5,-3.5,0);
 
     mode_changed = true;
     init_done = false;
