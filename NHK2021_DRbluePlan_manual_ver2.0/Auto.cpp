@@ -1,6 +1,7 @@
 #include "Auto.h"
 
-PathTracking motion(FOLLOW_TANGENT); // 経路追従(接線方向向く)モードでとりあえず初期化
+//PathTracking motion(FOLLOW_TANGENT); // 経路追従(接線方向向く)モードでとりあえず初期化
+PathTracking motion(FOLLOW_COMMAND); // 角度を固定するモードでとりあえず初期化
 
 Auto::Auto(){
 }
