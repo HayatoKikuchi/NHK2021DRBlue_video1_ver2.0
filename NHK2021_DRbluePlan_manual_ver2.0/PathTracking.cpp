@@ -152,8 +152,8 @@ void PathTracking::calcRefpoint(double Posix, double Posiy){
         // 外積による距離導出
         //double angle;
         angle = atan2(dbezier_y(path_num, t_be), dbezier_x(path_num, t_be)); // ベジエ曲線の接線方向
-        if(fabs(angle - preAngle) > PI){
-            angle += 2 * PI;
+        if(fabs(angle - preAngle) > PI_){
+            angle += 2 * PI_;
         }
         //double dist;
         dist = (ony - Posiy)*cos(angle) - (onx - Posix)*sin(angle);
