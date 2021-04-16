@@ -45,6 +45,18 @@ PathTracking::PathTracking(int xmode){
     kakudo_filter.setSecondOrderPara(10.0, 1.0, 0.0);//(7.0, 1.0, 0.0);
    // angle = 2.35619;
 
+    //II型ポット
+    settingPx(1,0.5,0.5,5.0,5.45);
+    settingPy(1,-0.5,-2.0,-7.5,-4.5);
+    settingPx(2,5.45,5.1,4.9,4.9);
+    settingPy(2,-4.5,-2.75,-3.5,-2.5);
+
+    //III型ポット
+    settingPx(3,0.5,0.5,5.0,5.45);
+    settingPy(3,-0.5,-2.0,-7.5,-4.5);
+    settingPx(4,5.45,5.1,4.6,4.9);
+    settingPy(3,-4.5,-2.5,-3.5,0);
+
     mode_changed = true;
     init_done = false;
 }
@@ -322,4 +334,20 @@ double PathTracking::getRefVper(){
 
 double PathTracking::getRefVrot(){
     return rot;
+}
+
+
+void PathTracking::settingPx(int pathNum, double px0, double px1, double px2, double px3)
+{
+    Px[3*(pathNum - 1)] = px3;
+    Px[2*(pathNum - 1)] = px2;
+    Px[1*(pathNum - 1)] = px1;
+    Px[0*(pathNum - 1)] = px0;
+}
+void PathTracking::settingPy(int pathNum, double py0, double py1, double py2, double py3)
+{
+    Py[3*(pathNum - 1)] = py3;
+    Py[2*(pathNum - 1)] = py2;
+    Py[1*(pathNum - 1)] = py1;
+    Py[0*(pathNum - 1)] = py0;
 }

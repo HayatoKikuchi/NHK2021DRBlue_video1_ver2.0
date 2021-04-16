@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <math.h>
 
-#define PATHNUM 50
+#define PATHNUM  50
 #define POINTNUM 100
 
 #define FOLLOW_TANGENT  ( 0 )
@@ -95,6 +95,9 @@ public:
 
     double getRefVper();
     double getRefVrot();
+
+    void settingPx(int pathNum, double px0, double px1, double px2, double px3);
+    void settingPy(int pathNum, double py0, double py1, double py2, double py3);
 
 private:
     int path_num;
