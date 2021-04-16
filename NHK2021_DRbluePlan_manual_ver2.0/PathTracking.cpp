@@ -57,6 +57,16 @@ PathTracking::PathTracking(int xmode){
     settingPx(4,5.45,5.1,4.6,4.9);
     settingPy(4,-4.5,-2.5,-3.5,0);
 
+    //角度と速度の指定
+    settingRefAngle(1,0.0);
+    settingRefAngle(2,0.0);
+    settingRefAngle(3,0.0);
+    settingRefAngle(4,0.0);
+    settingRefVel(1,1.5);
+    settingRefVel(2,1.5);
+    settingRefVel(3,1.5);
+    settingRefVel(4,1.5);
+
     mode_changed = true;
     init_done = false;
 }
@@ -350,4 +360,12 @@ void PathTracking::settingPy(int pathNum, double py0, double py1, double py2, do
     Py[2*(pathNum - 1)] = py2;
     Py[1*(pathNum - 1)] = py1;
     Py[0*(pathNum - 1)] = py0;
+}
+void PathTracking::settingRefAngle(int pathNum, double refAngle)
+{
+    refangle[pathNum - 1] = refangle;
+}
+void PathTracking::settingRefVel(int pathNum, double refVel)
+{
+    refvel[pathNum -1] = refVel;
 }

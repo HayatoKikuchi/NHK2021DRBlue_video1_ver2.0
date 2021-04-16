@@ -98,6 +98,8 @@ public:
 
     void settingPx(int pathNum, double px0, double px1, double px2, double px3);
     void settingPy(int pathNum, double py0, double py1, double py2, double py3);
+    void settingRefAngle(int pathNum, double refAngle);
+    void settingRefVel(int pathNum, double refVel);
 
 private:
     int path_num;
