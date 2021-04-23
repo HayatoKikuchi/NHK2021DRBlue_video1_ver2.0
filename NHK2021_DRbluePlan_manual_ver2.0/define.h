@@ -17,20 +17,20 @@ struct coords_4{
 };
 
 // スイッチやLEDのピン設定
-#define PIN_SW_UP    32
+#define PIN_SW_UP    30 //32でした
 #define PIN_SW_LEFT  33
 #define PIN_SW_RIGHT 31
-#define PIN_SW_DOWN  30
+#define PIN_SW_DOWN  32 //30でした
 #define PIN_ENC_A  26
 #define PIN_ENC_B  27
 #define PIN_DIP1 25
 #define PIN_DIP2 24
 #define PIN_DIP3 69
 #define PIN_DIP4 70
-#define DIP1 0x01
+#define DIP1_CON 0x01
 #define DIP2 0x02
 #define DIP3 0x04
-#define DIP4 0x08
+#define DIP4_PIDSETTING 0x08
 
 #define PIN_SW_BLACK  29
 #define PIN_SW_RED    28
@@ -59,9 +59,9 @@ struct coords_4{
 
 //#define SERIAL_LPC1768  Serial0
 #define SERIAL_LPMSME1  Serial1
-#define SERIAL_ROBOCLAW_L Serial4 //wheel1 and wheel2
-#define SERIAL_ROBOCLAW_R Serial0 //wheel3 and wheel4
-#define SERIAL_LEONARDO Serial5
+#define SERIAL_ROBOCLAW_L Serial0 //wheel1 and wheel2
+#define SERIAL_ROBOCLAW_R Serial4 //wheel3 and wheel4
+#define SERIAL_LPC1768 Serial5
 #define SERIAL_LCD      Serial6
 #define SERIAL_XBEE     Serial7
 
@@ -70,9 +70,9 @@ struct coords_4{
 #define PI_ ( 3.1415926 )
 
 // 自己位置推定用エンコーダ関連
-#define _2PI_RES4   ( 2 * PI_ / (4*200) ) // 分解能 200ppr
-#define RADIUS_X    ( 0.024118 )    
-#define RADIUS_Y    ( 0.024118 )
+#define _2PI_RES4   ( 2 * PI_ / (4*100) ) // 分解能 100ppr
+#define RADIUS_X    ( 0.0375/2.0 )    
+#define RADIUS_Y    ( 0.0375/2.0 )
 
 #define DRIVE_MECHANUM      ( 0 )
 #define DRIVE_OMNI4WHEEL    ( 1 )
@@ -145,10 +145,10 @@ struct coords_4{
 #endif
 
 // RoboClaw関連
-#define ADR_MD_WHEE_1   ( 131 )
-#define ADR_MD_WHEE_2   ( 128 )
-#define ADR_MD_WHEE_3   ( 129 )
-#define ADR_MD_WHEE_4   ( 130 )
+#define ADR_MD_WHEE_2   ( 131 ) //Wheel2
+#define ADR_MD_WHEE_1   ( 128 ) //Wheel1
+#define ADR_MD_WHEE_4   ( 129 ) //Wheel4
+#define ADR_MD_WHEE_3   ( 130 ) //Wheel3
 
 //const double _2PI_MEASRMX = 2.0 * PI / MEASURE_RES_MUL_X;
 //const double _2PI_MEASRMY = 2.0 * PI / MEASURE_RES_MUL_Y;
