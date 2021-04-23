@@ -15,14 +15,23 @@ DRBlue::DRBlue(lpms_me1 *_lpms, phaseCounter *_enc1, phaseCounter *_enc2)
   setAngleNum = 0.0;
 }
 
-DRexpand::DRexpand(byte _sw_pinName, byte _mosfet)
+PIDsetting::PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder)
+{
+  pid = _pid;
+  LCD = _LCD;
+  encorder = _encorder;
+}
+
+DRexpand::DRexpand(byte _sw_pinName, byte _mosfet_phase1, byte _mosfet_phase2)
 {
   sw_pinName = _sw_pinName;
-  mosfet = _mosfet;
+  mosfet_phase1 = _mosfet_phase1;
+  mosfet_phase2 = _mosfet_phase2;
   DRexpand::init();
 }
 
-DRwall::DRwall(byte pinSW, byte pinSupport, int MDadress, RoboClaw *_roboclaw) : sw(pinSW){
+DRwall::DRwall(byte pinSW, byte pinSupport, int MDadress, RoboClaw *_roboclaw) : sw(pinSW)
+{
   adress = MDadress;
   pinSpt = pinSupport;
   roboclaw = _roboclaw;
@@ -32,7 +41,8 @@ DRwall::DRwall(byte pinSW, byte pinSupport, int MDadress, RoboClaw *_roboclaw) :
 }
 
 /****自己位置推定の関数****/
-void DRBlue::updateRobotPosition(){
+void DRBlue::updateRobotPosition()
+{
   
   encX_rad = (double)enc1->getCount() * _2PI_RES4;
   encY_rad = (double)enc2->getCount() * _2PI_RES4;
@@ -43,27 +53,29 @@ void DRBlue::updateRobotPosition(){
   x_axis_prime = encX - pre_encX;
   y_axis_prime = encY - pre_encY;
 
-  position.x += x_axis_prime*cos(angle_rad) - y_axis_prime*sin(angle_rad);
-  position.y += x_axis_prime*sin(angle_rad) + y_axis_prime*cos(angle_rad);
+  position.x += x_axis_prime*cos(roboAngle) - y_axis_prime*sin(roboAngle);
+  position.y += x_axis_prime*sin(roboAngle) + y_axis_prime*cos(roboAngle);
   position.z = roboAngle;
 
   pre_encX = encX;
   pre_encY = encY;
 }
 
-void DRBlue::updateRoboAngle(){
+void DRBlue::updateRoboAngle()
+{
   roboAngle = (double)lpms->get_z_angle();
 }
 
-void DRBlue::setPosition(double x, double y, double z)
+void DRBlue::setPosition(double x, double y, double z) // x[m]，y[m]，z[度]
 {
   position.x = x;
   position.y = y;
   anlge_ofset = -1*position.z;
-  position.z = roboAngle = setAngleNum = z;
+  position.z = roboAngle = setAngleNum = z/360.0 * 2.0 * PI_;
 }
 
-void DRBlue::DRsetup(){
+void DRBlue::DRsetup()
+{
   pinMode(PIN_SUPPORT_RIGHT,OUTPUT);
   pinMode(PIN_SUPPORT_LEFT,OUTPUT);
   pinMode(PIN_EXPAND_RIGHT,OUTPUT);
@@ -73,7 +85,8 @@ void DRBlue::DRsetup(){
   pinMode(PIN_SW_EXPAND_RIGHT,INPUT);
 }
 
-void DRBlue::BasicSetup(){
+void DRBlue::BasicSetup()
+{
     
   pinMode(PIN_SW, INPUT); // オンボードのスイッチ
 
@@ -143,43 +156,121 @@ void DRBlue::allOutputLow(){
   digitalWrite(PIN_SUPPORT_WHEEL_4,LOW);
 }
 
-void DRexpand::expand_func(int ConButton, int mode)
+
+void PIDsetting::setting(double encorder_count, bool flag_100ms,bool up, bool down)
 {
-  if(expand.flag_pahse1){
-    if(ConButton == _PUSHED && !expand.flag_pahse2){
-      digitalWrite(mosfet,HIGH);
-      expand.flag_pahse2 = true;
+  static int pid_setting_mode = 1;
+  static double Kp = 0.0, Ki = 0.0, Kd = 0.0;
+  static bool init_kp = true, init_ki = true, init_kd = true;
+  static bool flag_lcd = true;
+
+  if(up)   pid_setting_mode++;
+  else if(down) pid_setting_mode--;
+  if(pid_setting_mode == 0) pid_setting_mode = 3;
+  else if(pid_setting_mode == 4) pid_setting_mode = 1;
+  
+  if(flag_lcd)
+  { 
+    LCD->clear_display();
+    LCD->write_str("RadianPID Setting",LINE_1,1);
+    flag_lcd = false;
+  }
+
+  switch (pid_setting_mode)
+  {
+  case 1:
+    init_ki = true;
+    init_kd = true;
+    if(init_kp)
+    { 
+      LCD->write_str("Kp ",LINE_3,1); //3コマ使用
+      encorder->setEncCount((int)(10.0 * pid->Kp));
+      init_kp = false;
     }
-    if(expand.flag_pahse2){
-      switch (mode)
-      {
-      case 1:
-        if(!digitalRead(sw_pinName)){
-          digitalWrite(mosfet,HIGH);
-          expand.flag_pahse1 = false;
-        }
-        break;
-      
-      case 2:
-        if(ConButton == _PUSHED){
-          digitalWrite(mosfet,HIGH);
-          expand.flag_pahse1 = false;
-        }
-      default:
-        break;
-      }
+    Kp = 0.1*(double)encorder_count;
+    if(flag_100ms)
+    {
+      LCD->write_str("          ",LINE_3,4);
+      LCD->write_double(pid->Kp,LINE_3,4);
     }
-    if(ConButton == _PUSHED){
-      digitalWrite(mosfet,HIGH);
+    break;
+  
+  case 2:
+    init_kp = true;
+    init_kd = true;
+    if(init_ki)
+    {
+      LCD->write_str("Ki ",LINE_3,1); //3コマ使用
+      encorder->setEncCount((int)(10.0 * pid->Ki));
+      init_ki = false;
+    }
+    Ki = 0.1*(double)encorder_count;
+    if(flag_100ms)
+    {
+      LCD->write_str("          ",LINE_3,4);
+      LCD->write_double(pid->Ki,LINE_3,4);
+    }
+    break;
+  
+  case 3:
+    init_kp = true;
+    init_ki = true;
+    if(init_kd)
+    {
+      LCD->write_str("Kd ",LINE_3,1); //3コマ使用
+      encorder->setEncCount((int)(10.0 * pid->Kd));
+      init_kd = false;
+    }
+    Kd = 0.1*(double)encorder_count;
+    if(flag_100ms)
+    {
+      LCD->write_str("          ",LINE_3,4);
+      LCD->write_double(pid->Kd,LINE_3,4);
+    }
+    break;
+
+  default:
+    break;
+  }
+  pid->setPara(Kp,Ki,Kd);
+}
+
+
+void DRexpand::expand_func(bool ConButton, int mode) //モードは取り敢えず2
+{
+  if(expand.flag_pahse1)
+  {
+    if(ConButton)
+    {
+      digitalWrite(mosfet_phase1,HIGH);
       expand.flag_pahse1 = false;
     }
   }
+
+  if(expand.flag_pahse2)
+  {
+    switch (mode)
+    {
+    case 1:
+      if(!digitalRead(sw_pinName)) digitalWrite(mosfet_phase2,HIGH);
+      break;
+    
+    case 2:
+      if(ConButton) digitalWrite(mosfet_phase2,HIGH);
+      break;
+
+    default:
+      break;
+    }
+  }else if(!expand.flag_pahse1) expand.flag_pahse2 = true;
 }
 
 void DRexpand::init(void)
 {
   expand.flag_pahse1 = true;
   expand.flag_pahse2 = false;
+  digitalWrite(mosfet_phase1,LOW);
+  digitalWrite(mosfet_phase2,LOW);
 }
 
 int convert_position(double degree,double resorution, double gearration){

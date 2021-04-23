@@ -7,7 +7,10 @@
 #include "Button_Encorder.h"
 #include "lpms_me1Peach.h"
 #include "phaseCounterPeach.h"
+#include "LCDclass.h"
 #include "RoboClaw.h"
+#include "Button_Encorder.h"
+#include "PIDclass.h"
 
 #define _PUSHED     1
 #define _RELEASED   2
@@ -47,15 +50,30 @@ private:
     double setAngleNum;
 };
 
+class PIDsetting
+{
+public:
+    PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
+
+    void setting(double encorder_count, bool flag_100ms,bool up, bool down);
+private:
+    PID *pid;
+    myLCDclass *LCD;
+    Encorder *encorder;
+};
+
 class DRexpand{
 public:
-    DRexpand(byte _sw_pinName, byte _mosfet);
-    void expand_func(int ConButton, int mode); //展開機構を操作する
+    DRexpand(byte _sw_pinName, byte _mosfet_phase1, byte _mosfet_phase2);
+    void expand_func(bool ConButton, int mode); //展開機構を操作する
     void init(void);
-    expand_value expand;
 private:
+
+    expand_value expand;
+    bool expand_phase1_finish;
     byte sw_pinName;
-    byte mosfet;
+    byte mosfet_phase1;
+    byte mosfet_phase2;
 };
 
 class DRwall{
