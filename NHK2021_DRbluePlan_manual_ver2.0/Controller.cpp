@@ -17,6 +17,8 @@ Controller::Controller(HardwareSerial *_Ser)
     LJoyY = 127;
     RJoyX = 127;
     RJoyY = 127;
+
+    ConAvailable = true;
 }
 
 void Controller::begin(int baudrate){
@@ -27,12 +29,11 @@ void Controller::begin_api(int baudrate){
     xbee.begin(SERIAL_XBEE);
 }
 
-void Controller::update(byte PinName)
+bool Controller::update(byte PinName)
 {
   unsigned int checksum;
   //uint8_t tmp;
   char c;
-  char recv_msgs[10];
   while (Ser->available())
   {
     c = Ser->read();
@@ -44,6 +45,7 @@ void Controller::update(byte PinName)
 
         for (int i = 0; i < 9; i++)
         {
+          raww_recv_msgs[i] = recv_msgs[i];
           recv_msgs[i] = recv_msgs[i] - 0x20;
           checksum += (unsigned int)recv_msgs[i];
         }
@@ -70,6 +72,8 @@ void Controller::update(byte PinName)
 
           RJoyY = recv_msgs[7];
           RJoyY |= (recv_msgs[8] & 0x03) << 6;
+          
+          return true;
         }
       }
       recv_num = 0;
@@ -79,6 +83,7 @@ void Controller::update(byte PinName)
       recv_msgs[recv_num++] = c;
     }
   }
+  return false;
 }
 
 void Controller::update_api(byte PinName)
@@ -156,45 +161,67 @@ void Controller::update_api_DR(byte PinName)
     digitalWrite(PinName,LOW); 
   } 
 }
+
+void Controller::setAvailable(bool choose)
+{
+  static int count_PAD = 0;
+  int num = 0;
+  if(choose) 
+  {
+    ConAvailable = true;
+  
+    if(ButtonState & BUTTON_PAD) num += 2;
+    if(preButtonState & BUTTON_PAD) num += 1;
+    if(num == PUSHED) count_PAD++;
+    if(count_PAD % 2 == 0) ConAvailable = true;
+    else ConAvailable = false;  
+  }
+  else
+  {
+    ConAvailable = false;
+  }
+}
  
 bool Controller::readButton(unsigned int button,int status)
 {
   int8_t num = 0;
-  if(ButtonState & button)  num += 2;
-  if(preButtonState & button) num -= 1;
+  if(!ConAvailable) return false;
+  if(getButtonState() & button)  num += 2;
+  if(getpreButtonState() & button) num -= 1;
   if(num == status) return true;
   else return false;
 }
 
 unsigned int Controller::getButtonState() const
 {
-    return ButtonState;
+  if(ConAvailable) return ButtonState;
+  else return 0;
 }
 unsigned int Controller::getpreButtonState() const
 {
-    return preButtonState;
+  if(ConAvailable) return preButtonState;
+  else return 0;
 }
 
 /**コントローラの入力に変化があったらtrueを返す**/
 bool Controller::getButtonChanged() const
 {
-    return buttonChanged;
+  if(ConAvailable) return buttonChanged;
+  else return false;
 }
 
-/**ジョイスティックの値を-1.0~1.0の範囲で返す関数**/
-double Controller::readJoyLX() const
+int Controller::readJoy(int joy)
 {
-    return -((double)LJoyX - 128.0) / 128.0;
-}
-double Controller::readJoyLY() const
-{
-    return -((double)LJoyY - 128.0) / 128.0;
-}
-double Controller::readJoyRX() const
-{
-    return -((double)RJoyX - 128.0) / 128.0;
-}
-double Controller::readJoyRY() const
-{
-    return -((double)RJoyY - 128.0) / 128.0;
+  int out = 0;
+  switch (joy)
+  {
+  case LX: out = LJoyX; break;
+  case LY: out = LJoyY; break;
+  case RX: out = RJoyX; break;
+  case RY: out = RJoyY; break;
+  default:
+    break;
+  }
+  if(ConAvailable) return out;
+  else return 0;
 }

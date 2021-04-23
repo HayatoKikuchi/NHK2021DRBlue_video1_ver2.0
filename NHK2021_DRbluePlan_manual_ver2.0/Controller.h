@@ -49,15 +49,21 @@
 #define PUSHED 2
 #define RELEASED -1
 
+#define DATA_NUM 10
+#define LX 1
+#define LY 2
+#define RX 3
+#define RY 4
+
 class Controller
 {
 public:
-    Controller(HardwareSerial *_Ser);
+    Controller(HardwareSerial *_Ser_con);
 
     void begin(int baudrate);
     void begin_api(int baudrate);
 
-    void update(byte PinName);
+    bool update(byte PinName);
     void update_api(byte PinName);
     void update_api_DR(byte PinName);
 
@@ -66,37 +72,26 @@ public:
     unsigned int getButtonState() const;
     unsigned int getpreButtonState() const;
 
-    /**
-     * ジョイスティックの値を読む
-     * @return -1.0 ~ 1.0
-     * 
-     *      X
-     *      ^
-     *      |
-     * Y<---+----
-     *      |
-     *      |
-     */
-    double readJoyLX() const;
-    double readJoyLY() const;
-    double readJoyRX() const;
-    double readJoyRY() const;
+    int readJoy(int joy); //LX,LY,RX,RYの何れかを選択
 
     bool getButtonChanged() const; //スイッチの状態を確認する
-    
-    unsigned int ButtonState, preButtonState;
-    unsigned int LJoyX, LJoyY, RJoyX, RJoyY;
+
+    void setAvailable(bool choose);
+
+    char raww_recv_msgs[DATA_NUM];
+    bool ConAvailable;//GR-PEACHがコントローラのデータを使用して良いかどうか
 
 private:
     HardwareSerial *Ser;
 
+    char recv_msgs[DATA_NUM];
+
+    unsigned int ButtonState, preButtonState;
+    unsigned int LJoyX, LJoyY, RJoyX, RJoyY;
     bool buttonChanged;
-    
 
 private:
     int recv_num;
-
-    char recv_msgs[9];
     int recive_num[9];
     int recive_num_DR[5];
 };
