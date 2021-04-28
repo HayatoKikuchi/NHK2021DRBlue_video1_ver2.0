@@ -63,7 +63,7 @@ unsigned int ButtonState = 0, LJoyX = 127, LJoyY = 127, RJoyX = 127, RJoyY = 127
 
 int zone; // 赤か青か
 bool flag_10ms = false; // loop関数で10msごとにシリアルプリントできるようにするフラグ
-bool flag_100ms = false;
+bool flag_500ms = false;
 
 // 最大最小範囲に収まるようにする関数
 double min_max(double value, double minmax)
@@ -145,7 +145,7 @@ void timer_warikomi(){
   // フラグ立てるための処理
   flag_10ms = true;
   if(count_flag >= 10){
-    flag_100ms = true;
+    flag_500ms = true;
     count_flag = 0;
   }
 
@@ -413,12 +413,12 @@ void loop()
   }
 
   // 100msごとにLCDを更新する
-  if(flag_100ms){
+  if(flag_500ms){
     myLCD.write_double(gPosix, LINE_2, 3);
     myLCD.write_double(gPosiy, LINE_2, 12);
     myLCD.write_double(gPosiz, LINE_3, 6);
     
-    flag_100ms = false;
+    flag_500ms = false;
   }
  //delayMicroseconds(100);
 }

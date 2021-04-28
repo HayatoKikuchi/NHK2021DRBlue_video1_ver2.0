@@ -157,7 +157,7 @@ void DRBlue::allOutputLow(){
 }
 
 
-void PIDsetting::setting(double encorder_count, bool flag_100ms,bool up, bool down)
+void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool down)
 {
   static int pid_setting_mode = 1;
   static double Kp = 0.0, Ki = 0.0, Kd = 0.0;
@@ -188,7 +188,7 @@ void PIDsetting::setting(double encorder_count, bool flag_100ms,bool up, bool do
       init_kp = false;
     }
     Kp = 0.1*(double)encorder_count;
-    if(flag_100ms)
+    if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
       LCD->write_double(pid->Kp,LINE_3,4);
@@ -205,7 +205,7 @@ void PIDsetting::setting(double encorder_count, bool flag_100ms,bool up, bool do
       init_ki = false;
     }
     Ki = 0.1*(double)encorder_count;
-    if(flag_100ms)
+    if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
       LCD->write_double(pid->Ki,LINE_3,4);
@@ -222,7 +222,7 @@ void PIDsetting::setting(double encorder_count, bool flag_100ms,bool up, bool do
       init_kd = false;
     }
     Kd = 0.1*(double)encorder_count;
-    if(flag_100ms)
+    if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
       LCD->write_double(pid->Kd,LINE_3,4);

@@ -28,8 +28,8 @@ struct coords_4{
 #define PIN_DIP3 69
 #define PIN_DIP4 70
 #define DIP1_CON 0x01
-#define DIP2 0x02
-#define DIP3 0x04
+#define DIP2_POT_PID 0x02
+#define DIP3_AUTO2 0x04
 #define DIP4_PIDSETTING 0x08
 
 #define PIN_SW_BLACK  29
@@ -149,11 +149,5 @@ struct coords_4{
 #define ADR_MD_WHEE_1   ( 128 ) //Wheel1
 #define ADR_MD_WHEE_4   ( 129 ) //Wheel4
 #define ADR_MD_WHEE_3   ( 130 ) //Wheel3
-
-//const double _2PI_MEASRMX = 2.0 * PI / MEASURE_RES_MUL_X;
-//const double _2PI_MEASRMY = 2.0 * PI / MEASURE_RES_MUL_Y;
-//const double _0P5_MEASHD = 0.5 / MEASURE_HANKEI_D;
-//const double _MECAHD_ADD_MECAHL = MECANUM_HANKEI_D + MECANUM_HANKEI_L;
-//const double _2MECAR_PI = 2.0 * MECANUM_RES / PI;
 
 #endif

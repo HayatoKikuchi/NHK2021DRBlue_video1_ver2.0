@@ -39,12 +39,12 @@ public:
     double robot_vel_x;
     double robot_vel_y;
     double robot_vel;
+    double refAngle;
 
 private:
     PID *pid;
 
     double posiZ_cmd;
-    double refAngle;
 
     int path_num;
     int mode;

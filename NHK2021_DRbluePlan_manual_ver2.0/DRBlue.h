@@ -55,7 +55,7 @@ class PIDsetting
 public:
     PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
 
-    void setting(double encorder_count, bool flag_100ms,bool up, bool down);
+    void setting(double encorder_count, bool flag_500ms,bool up, bool down);
 private:
     PID *pid;
     myLCDclass *LCD;

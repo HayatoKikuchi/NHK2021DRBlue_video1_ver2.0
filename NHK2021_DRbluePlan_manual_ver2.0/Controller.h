@@ -72,22 +72,22 @@ public:
     unsigned int getButtonState() const;
     unsigned int getpreButtonState() const;
 
-    int readJoy(int joy); //LX,LY,RX,RYの何れかを選択
+    unsigned readJoy(int joy); //LX,LY,RX,RYの何れかを選択
 
     bool getButtonChanged() const; //スイッチの状態を確認する
 
-    void setAvailable(bool choose);
+    int setAvailable(bool choose);
 
     char raww_recv_msgs[DATA_NUM];
     bool ConAvailable;//GR-PEACHがコントローラのデータを使用して良いかどうか
 
+    unsigned int ButtonState, preButtonState;
+    unsigned int LJoyX, LJoyY, RJoyX, RJoyY;
 private:
     HardwareSerial *Ser;
 
     char recv_msgs[DATA_NUM];
 
-    unsigned int ButtonState, preButtonState;
-    unsigned int LJoyX, LJoyY, RJoyX, RJoyY;
     bool buttonChanged;
 
 private:

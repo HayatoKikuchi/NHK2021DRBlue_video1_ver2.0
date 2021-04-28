@@ -162,7 +162,7 @@ void Controller::update_api_DR(byte PinName)
   } 
 }
 
-void Controller::setAvailable(bool choose)
+int Controller::setAvailable(bool choose)
 {
   static int count_PAD = 0;
   int num = 0;
@@ -170,8 +170,8 @@ void Controller::setAvailable(bool choose)
   {
     ConAvailable = true;
   
-    if(ButtonState & BUTTON_PAD) num += 2;
-    if(preButtonState & BUTTON_PAD) num += 1;
+    if(ButtonState & BUTTON_PAD) num += 1;
+    if(~preButtonState & BUTTON_PAD) num += 1;
     if(num == PUSHED) count_PAD++;
     if(count_PAD % 2 == 0) ConAvailable = true;
     else ConAvailable = false;  
@@ -180,6 +180,8 @@ void Controller::setAvailable(bool choose)
   {
     ConAvailable = false;
   }
+  preButtonState = ButtonState;
+  return count_PAD;
 }
  
 bool Controller::readButton(unsigned int button,int status)
@@ -190,6 +192,7 @@ bool Controller::readButton(unsigned int button,int status)
   if(getpreButtonState() & button) num -= 1;
   if(num == status) return true;
   else return false;
+  preButtonState = ButtonState;
 }
 
 unsigned int Controller::getButtonState() const
@@ -210,18 +213,17 @@ bool Controller::getButtonChanged() const
   else return false;
 }
 
-int Controller::readJoy(int joy)
+unsigned int Controller::readJoy(int joy)
 {
-  int out = 0;
+  unsigned int out;
   switch (joy)
   {
   case LX: out = LJoyX; break;
   case LY: out = LJoyY; break;
   case RX: out = RJoyX; break;
   case RY: out = RJoyY; break;
-  default:
-    break;
+  default: out = 127;   break;
   }
   if(ConAvailable) return out;
-  else return 0;
+  else return 127;
 }
