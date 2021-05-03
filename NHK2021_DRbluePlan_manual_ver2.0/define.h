@@ -18,8 +18,8 @@ struct coords_4{
 
 // スイッチやLEDのピン設定
 #define PIN_SW_UP    30 //32でした
-#define PIN_SW_LEFT  33
-#define PIN_SW_RIGHT 31
+#define PIN_SW_LEFT  31 //33でした
+#define PIN_SW_RIGHT 33 //31でした
 #define PIN_SW_DOWN  32 //30でした
 #define PIN_ENC_A  26
 #define PIN_ENC_B  27
