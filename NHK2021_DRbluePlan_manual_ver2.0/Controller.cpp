@@ -54,7 +54,6 @@ bool Controller::update(byte PinName)
         {
           digitalWrite(PinName, !digitalRead(PinName));
 
-          preButtonState = ButtonState;
           ButtonState = 0;//, LJoyX = 0, LJoyY = 0, RJoyX = 0, RJoyY = 0;
 
           ButtonState |= recv_msgs[0] & 0x3F;
@@ -72,6 +71,7 @@ bool Controller::update(byte PinName)
 
           RJoyY = recv_msgs[7];
           RJoyY |= (recv_msgs[8] & 0x03) << 6;
+          //preButtonState = ButtonState;
           
           return true;
         }
@@ -83,6 +83,7 @@ bool Controller::update(byte PinName)
       recv_msgs[recv_num++] = c;
     }
   }
+          preButtonState = ButtonState;
   return false;
 }
 
@@ -180,7 +181,7 @@ int Controller::setAvailable(bool choose)
   {
     ConAvailable = false;
   }
-  preButtonState = ButtonState;
+  //preButtonState = ButtonState;
   return count_PAD;
 }
  
@@ -192,7 +193,7 @@ bool Controller::readButton(unsigned int button,int status)
   if(getpreButtonState() & button) num -= 1;
   if(num == status) return true;
   else return false;
-  preButtonState = ButtonState;
+  //preButtonState = ButtonState;
 }
 
 unsigned int Controller::getButtonState() const
