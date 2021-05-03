@@ -36,6 +36,8 @@ DRwall wall_2(PIN_SW_WALL_2,PIN_SUPPORT_WHEEL_2,ADR_MD_WHEE_2,&roboclawL); //　
 DRwall wall_3(PIN_SW_WALL_3,PIN_SUPPORT_WHEEL_3,ADR_MD_WHEE_3,&roboclawR); //　↓
 DRwall wall_4(PIN_SW_WALL_4,PIN_SUPPORT_WHEEL_4,ADR_MD_WHEE_4,&roboclawR); //　↓
 
+Filter vel_const(INT_TIME);
+
 //DRexpand expand_right(PIN_SW_EXPAND_RIGHT,PIN_SUPPORT_RIGHT); // 展開機構
 //DRexpand expand_left(PIN_SW_EXPAMD_LEFT,PIN_SUPPORT_LEFT,PIN_EXPAND_LEFT);    // ↓
 
@@ -69,6 +71,8 @@ bool inner_area = false;
 coords GlobalVelPID = {0.0, 0.0, 0.0};
 coords refPIDsetting = {0.0,0.0,0.0};
 double vel_max;
+double expand_stop_seconds = 0.0;
+bool expand_stop_order = false;
 
 //**指定したエリア内にいるかいないか**//
 bool area(double point,double min,double max)
@@ -84,31 +88,43 @@ double min_max(double value, double minmax)
   else if(value < -minmax) value = -minmax;
   return value;
 }
+
+// 角度を弧度法から度数法に変換する関数
+double getDeg(double rad)
+{
+  return rad/(2.0*PI_)*360.0;
+}
+// 角度を度数法から弧度法に変換する関数
+double getRad(double deg)
+{
+  return deg/360.0*2.0*PI_;
+}
+
 /****割込みの関数****/
 void timer_warikomi()
 {
-  DR.RGB_led(2);
-  DR.updateRobotPosition();
+  DR.RGB_led(2); //フルカラーLEDを光らせる
+  DR.updateRobotPosition(); //自己位置の更新
   //DR.updateRoboAngle(); // updateRobotPosition関数を使用する場合は不要
   ManualCon.updatePosiPID(GlobalVelPID.z,MAXOMEGA,DR.roboAngle,JOYCONPID);
-  if(dipsw_state & DIP4_PIDSETTING)
+  if(dipsw_state & DIP4_PIDSETTING) //DIP4がONの場合．PIDセッティングが優先される
   {
-    GlobalVelPID.x = posiX_pid.getCmd(refPIDsetting.x,DR.position.x,vel_max);
-    GlobalVelPID.y = posiY_pid.getCmd(refPIDsetting.y,DR.position.y,vel_max);
+    GlobalVelPID.x = posiX_pid.getCmd(refPIDsetting.x,DR.position.x,vel_max); //x軸方向の位置制御（グローバルの速度を得る）
+    GlobalVelPID.y = posiY_pid.getCmd(refPIDsetting.y,DR.position.y,vel_max); //y軸方向の位置制御（グローバルの速度を得る）
   }
-  else if(dipsw_state & DIP2_POT_PID)
+  else if(dipsw_state & DIP2_POT_PID) //DIP2がONの場合
   {
     static bool posi_phase1 = true;
     static bool posi_phase2 = false;
-    if((4.925 < DR.position.x) && (-4.0 < DR.position.y) && posi_phase1)
+    if((4.925 < DR.position.x) && (-4.0 < DR.position.y) && posi_phase1)//インナーエリアに侵入したらⅡ型ポット前まで移動
     {
       GlobalVelPID.x = posiX_pid.getCmd(4.149,DR.position.x,vel_max);
       GlobalVelPID.y = posiY_pid.getCmd(-3.402,DR.position.y,vel_max);
-      inner_area = true;
+      inner_area = true; //インナーエリアにいることを示すフラグ
       posi_phase1 = false;
       posi_phase2 = true;
     }
-    if(area(DR.position.x,4.149-0.05,4.149+0.05) && area(DR.position.y,-3.402-0.05,-3.402+0.05) && posi_phase2)
+    if(area(DR.position.x,4.149-0.05,4.149+0.05) && area(DR.position.y,-3.402-0.05,-3.402+0.05) && posi_phase2) //Ⅱ型ポット前での収束判定．ハンドル把持位置へ
     {
       GlobalVelPID.x = posiX_pid.getCmd(4.149,DR.position.x,vel_max);
       GlobalVelPID.y = posiY_pid.getCmd(-3.402,DR.position.y,vel_max);
@@ -116,16 +132,19 @@ void timer_warikomi()
     }
   }
 
+  if(expand_stop_order) expand_stop_seconds += 0.01;
+  else expand_stop_seconds = 0.0;
 
   encorder_count = enc.getEncCount(); //エンコーダのカウント値を更新
   dipsw_state = dipsw.getDipState(); // ディップスイッチの状態を更新
-  button_RED = button_red.button_fall();
+  button_RED = button_red.button_fall(); //ボード上の押しボタン
   button_BLACK = button_black.button_fall();
   button_UP = button_up.button_fall();
   button_DOWN = button_down.button_fall();
   button_RIGHT = button_right.button_fall();
   button_LEFT = button_left.button_fall();
 
+  /*500msのフラグを生成*/
   static int count_500ms = 0;
   if(50 <= count_500ms){
     flag_500ms = true;
@@ -158,16 +177,20 @@ void setup()
   lcd.write_str("----Setting Time----",LINE_2,0);
   lcd.write_str("PUSH BUTTON_PS",LINE_3,1);
   
-  //ボードのスイッチが押されるまで待機
+  //PSボタンが押されるまで待機（ボード上のスイッチでも可）
   bool ready_to_start = false;
   bool wall_init = false;
   while(!ready_to_start)
   {
-    Con.update(PIN_LED_USER);
-    //roboclawの原点出し
-    if(Con.readButton(BUTTON_PS,PUSHED) || !digitalRead(PIN_SW))
-    {  
+    Con.update(PIN_LED_USER); //コントローラの情報を更新
+
+    //roboclawの原点出し（今は使用していない）
+    if(Con.readButton(BUTTON_PS,PUSHED) || !digitalRead(PIN_SW) && !wall_init)
+    { 
+      posiX_pid.PIDinit(0.0,0.0);
+      posiY_pid.PIDinit(0.0,0.0);
       posiZ_pid.PIDinit(0.0,0.0);
+      vel_const.setLowPassPara(0.35,1.5);
       DR.LEDblink(PIN_LED_GREEN, 2, 100);
       lcd.clear_display();
       lcd.write_str("Are you ready?",LINE_2,1);
@@ -175,28 +198,28 @@ void setup()
       wall_init = true;
     }
 
+    //この間に位置合わせを行う
     if((Con.readButton(BUTTON_PS,PUSHED) || !digitalRead(PIN_SW)) && wall_init)
     {
       static bool once_loop = false; //BUTTON_PSのPUSHEDを一度見送る
       if(once_loop)
       {
-        DR.LEDblink(PIN_LED_BLUE, 2, 100);
         lcd.clear_display();
         lcd.color_green();
-        lcd.clear_display();
-
+        DR.LEDblink(PIN_LED_BLUE, 2, 100);
         delay(1000);
         lcd.write_str("  HELLO WORLD   ",LINE_2,1);
         ready_to_start = true;
       }
       once_loop = true;
     }
+    delay(5);
   }
 
   MsTimer2::set(10,timer_warikomi); // 10ms period
   MsTimer2::start();
-  ManualCon.setRefAngle(-90.0);
-  DR.setPosition(0.5,-0.5,-90.0);
+  ManualCon.setRefAngle(-90.0); //機体を-90.0度回転させておく
+  DR.setPosition(0.365,-0.4,-90.0); //機体の中心がスタートゾーンの中心と重なる
 }
 
 void loop()
@@ -210,7 +233,7 @@ void loop()
     SERIAL_LPC1768.println();
     digitalWrite(PIN_LED_1,LOW);
   }
-  else if(Con.ConAvailable)
+  else if(Con.ConAvailable) //GR-PEACHがコントローラの値を使える状態
   {
     digitalWrite(PIN_LED_1,HIGH);
   }
@@ -220,6 +243,69 @@ void loop()
   //expand_left.expand_func(Con.readButton(BUTTON_L1,PUSHED),2);
   //if(Con.readButton(BUTTON_PS,PUSHED)) expand_left.init();
 
+  //**最高速度の変更*///
+  static double setCx = 1.0; //速度の倍数
+  static double setCy = 1.0; //速度の倍数
+  static double setCz = 1.0; //速度の倍数
+  //static int Cxy_stock = 1.0;
+  if(~dipsw_state & DIP4_PIDSETTING)
+  {
+    if(button_UP)//ボード上のスイッチ
+    { 
+      if(setCx < 3.0) //上限は3倍(3.0m/s)
+      {
+        setCx += 0.5; 
+        setCy += 0.5;
+        //Cxy_stock = Cx;     
+      }
+    }
+    if(button_DOWN)//ボード上のスイッチ
+    {
+      if(0.5 < setCx) //下限は0.5倍(0.5m/s)
+      {
+        setCx -= 0.5;
+        setCy -= 0.5;
+        //Cxy_stock = Cy;
+      }
+    }
+  }
+  double Cx,Cy;
+  //Cx = Cy = vel_const.LowPassFilter(2.0*Con.readButton(BUTTON_R2,PUSHE));
+  if(Con.readButton(BUTTON_L2,PUSHE)) Cx = Cy = 0.3;
+  else Cx = Cy = setCx;
+  vel_max = setCx;
+    if(Con.readButton(BUTTON_SANKAKU,PUSHED))
+    {
+      expand_stop_order = true;
+      digitalWrite(PIN_SUPPORT_LEFT,HIGH);
+      Serial.println("HIGH");
+    }
+    if(expand_stop_seconds >= 1.0){
+      digitalWrite(PIN_SUPPORT_LEFT,LOW);
+      expand_stop_order = false;
+      Serial.println("LOW");
+    }
+    //**旋回角度の指定**//
+    static double robotRefDeg = -90.0;
+    if(Con.readButton(BUTTON_R1,PUSHED))
+    {
+      robotRefDeg -= 90.0;
+      ManualCon.setRefAngle(robotRefDeg);
+      Serial.println(robotRefDeg);
+    }
+    if(Con.readButton(BUTTON_L1,PUSHED))
+    {
+      robotRefDeg += 90.0;
+      ManualCon.setRefAngle(robotRefDeg);
+      Serial.println(robotRefDeg);
+    }
+    static bool change_roboAngle = true;
+    if((4.0 < DR.position.x) && (-3.5 < DR.position.y) && change_roboAngle && (dipsw_state & DIP3_AUTO2))
+    {
+      ManualCon.setRefAngle(0.0);
+      change_roboAngle = false;
+    } 
+
 
   //**10msの処理**//
   if( flag_10ms )
@@ -227,8 +313,8 @@ void loop()
     //旋回に関する設定//
     //if(dipsw_state & DIP4_PIDSETTING) radianPID_setup(true); // pidのゲインを設定
     
-    Con.setAvailable(dipsw_state & DIP1_CON);
-    if(dipsw_state & DIP4_PIDSETTING)
+    Con.setAvailable(dipsw_state & DIP1_CON); //DIP1でLPC1768に送信するかを決定
+    if(dipsw_state & DIP4_PIDSETTING) //DIP4がONの場合
     {
       static int pid_setting_num = 1;
       if(button_RIGHT)
@@ -241,75 +327,51 @@ void loop()
         pid_setting_num--;
         if(pid_setting_num <= 0) pid_setting_num = 3;
       }
+      char x_moji[] = "posiX PID";
+      char y_moji[] = "posiY PID";
+      char z_moji[] = "posiZ PID";
 
       switch (pid_setting_num)
       {
-      case 1: posiXpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN); break;
-      case 2: posiYpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN); break;
-      case 3: posiZpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN); break;
-      
+      case 1: 
+        posiXpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN,x_moji);
+        posiYpidSetting.init();
+        posiZpidSetting.init();
+        break;
+
+      case 2: 
+        posiYpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN,y_moji);
+        posiXpidSetting.init();
+        posiZpidSetting.init();
+        break;
+
+      case 3: 
+        posiZpidSetting.setting(encorder_count,flag_500ms,button_UP,button_DOWN,z_moji); 
+        posiXpidSetting.init();
+        posiYpidSetting.init();
+        break;
+
       default:
         break;
       }
     }
+    else
+    {
+      posiXpidSetting.init();
+      posiYpidSetting.init();
+      posiZpidSetting.init();
+    }
 
-    // //**展開機構の処理**//
-    if(Con.readButton(BUTTON_SANKAKU,PUSHE))  digitalWrite(PIN_SUPPORT_LEFT,HIGH);
+    coords localVel; //ローカルの速度
+    coords gloabalVel = ManualCon.getGlobalVel(Con.readJoy(LX),Con.readJoy(LY),Con.readJoy(RY)); //グローバルの速度をジョイスティックから計算
+    GlobalVelPID.z = gloabalVel.z; //グローバル変数に格納
     //if((4.5 < DR.position.x) && (-3.0 < DR.position.y) && (dipsw_state & DIP3_AUTO2)) digitalWrite(PIN_SUPPORT_LEFT,HIGH);
-  
-    //**旋回角度の指定**//
-    static double robotRefDeg = -90.0;
-    if(Con.readButton(BUTTON_LEFT,PUSHED))
-    {
-      robotRefDeg += 90.0;
-      ManualCon.setRefAngle(robotRefDeg);
-    }
-    if(Con.readButton(BUTTON_RIGHT,PUSHED))
-    {
-      robotRefDeg -= 90.0;
-      ManualCon.setRefAngle(robotRefDeg);
-    }
-    static bool change_roboAngle = true;
-    if((4.0 < DR.position.x) && (-3.5 < DR.position.y) && change_roboAngle && (dipsw_state & DIP3_AUTO2))
-    {
-      ManualCon.setRefAngle(0.0);
-      change_roboAngle = false;
-    } 
 
-    //**最高速度の変更*///
-    static double Cx = 1.0; //速度の倍数
-    static double Cy = 1.0; //速度の倍数
-    static double Cz = 1.0; //速度の倍数
-    //static int Cxy_stock = 1.0;
-    if(~dipsw_state & DIP4_PIDSETTING)
-    {
-      if(button_UP)//ボード上のスイッチ
-      { 
-        if(Cx < 3.0) //上限は3倍(3.0m/s)
-        {
-          Cx += 0.5; 
-          Cy += 0.5;
-          //Cxy_stock = Cx;     
-        }
-      }
-      if(button_DOWN)//ボード上のスイッチ
-      {
-        if(0.5 < Cx) //下限は0.5倍(0.5m/s)
-        {
-          Cx -= 0.5;
-          Cy -= 0.5;
-          //Cxy_stock = Cy;
-        }
-      }
-    }
-    // if(Con.readButton(BUTTON_L2,PUSHE)) Cx = Cy = 0.3;
-    // else Cx = Cy = Cxy_stock;
-    vel_max = Cx;
-    coords localVel;
-    coords gloabalVel = ManualCon.getGlobalVel(Con.readJoy(LX),Con.readJoy(LY),Con.readJoy(RY));
-    GlobalVelPID.z = gloabalVel.z;
-    if(~dipsw_state & DIP2_POT_PID && !inner_area)  localVel = ManualCon.getLocalVel(Cx*gloabalVel.x, Cy*gloabalVel.y, Cz*gloabalVel.z, DR.roboAngle, JOYCONPID);
+    //インナーエリアに侵入したら位置制御を行う
+    // if(~dipsw_state & DIP2_POT_PID && !inner_area)  localVel = ManualCon.getLocalVel(Cx*gloabalVel.x, Cy*gloabalVel.y, Cz*gloabalVel.z, DR.roboAngle, JOYCONPID);
+    if(~dipsw_state & DIP2_POT_PID)  localVel = ManualCon.getLocalVel(Cx*gloabalVel.x, Cy*gloabalVel.y, gloabalVel.z, DR.roboAngle, JOYCONPID);
     else if(dipsw_state & DIP2_POT_PID && inner_area) localVel = ManualCon.getLocalVel(GlobalVelPID.x, GlobalVelPID.y,GlobalVelPID.z, DR.roboAngle, POSITIONPID);
+    Serial.println(Cx);
 
     //**PIDsetting**//
     static double stock_posiX, stock_posiY;
@@ -327,15 +389,15 @@ void loop()
       }
       else
       {
-        if(Con.readButton(BUTTON_R1,PUSHED)) refPIDsetting.x = refPIDsetting.y = 1.0;
-        if(Con.readButton(BUTTON_L1,PUSHED)) refPIDsetting.x = refPIDsetting.y = 0.0;
+        if(Con.readButton(BUTTON_RIGHT,PUSHED)) refPIDsetting.x = refPIDsetting.y = 1.0;
+        if(Con.readButton(BUTTON_LEFT,PUSHED)) refPIDsetting.x = refPIDsetting.y = 0.0;
       }
     }
     else
     {
       if(PIDSetting_phase2)
       {
-        DR.setPosition(stock_posiX+DR.position.x,stock_posiY+DR.position.y,DR.roboAngle);
+        DR.setPosition(stock_posiX+DR.position.x,stock_posiY+DR.position.y,getDeg(DR.roboAngle));
         PIDSetting_phase1 = true;
         PIDSetting_phase2 = false;
       }
@@ -354,16 +416,18 @@ void loop()
   //**500msの処理（主にLCDの更新に使用）**//
   if(flag_500ms)
   { 
-    lcd.clear_display();
-    
-    lcd.write_str("X:",LINE_1,1);
-    lcd.write_str("Y:",LINE_2,1);
-    lcd.write_str("Z:",LINE_3,1);
-    lcd.write_str("VelMax:",LINE_4,1);
-    lcd.write_double(DR.position.x,LINE_1,4);
-    lcd.write_double(DR.position.y,LINE_2,4);
-    lcd.write_double(DR.position.z/(2.0*PI_)*360.0,LINE_3,4);
-    lcd.write_double(vel_max,LINE_4,9);
+    if(~dipsw_state & DIP4_PIDSETTING)
+    {
+      lcd.clear_display();
+      lcd.write_str("X:",LINE_1,1);
+      lcd.write_str("Y:",LINE_2,1);
+      lcd.write_str("Z:",LINE_3,1);
+      lcd.write_str("VelMax:",LINE_4,1);
+      lcd.write_double(DR.position.x,LINE_1,4);
+      lcd.write_double(DR.position.y,LINE_2,4);
+      lcd.write_double(DR.position.z/(2.0*PI_)*360.0,LINE_3,4);
+      lcd.write_double(vel_max,LINE_4,9);
+    }
 
     flag_500ms = false;
   }
@@ -372,4 +436,5 @@ void loop()
   digitalWrite(PIN_LED_2,dipsw_state & DIP2_POT_PID);
   digitalWrite(PIN_LED_3,dipsw_state & DIP3_AUTO2);
   digitalWrite(PIN_LED_4,dipsw_state & DIP4_PIDSETTING);
+  delay(5);
 }
