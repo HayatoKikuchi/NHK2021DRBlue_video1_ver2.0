@@ -55,11 +55,13 @@ class PIDsetting
 public:
     PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
 
-    void setting(double encorder_count, bool flag_500ms,bool up, bool down);
+    void init();
+    void setting(double encorder_count, bool flag_500ms,bool up, bool down,char moji[]);
 private:
     PID *pid;
     myLCDclass *LCD;
     Encorder *encorder;
+    bool flag_lcd;
 };
 
 class DRexpand{

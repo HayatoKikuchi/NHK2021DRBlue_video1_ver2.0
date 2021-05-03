@@ -20,6 +20,7 @@ PIDsetting::PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder)
   pid = _pid;
   LCD = _LCD;
   encorder = _encorder;
+  flag_lcd = true;
 }
 
 DRexpand::DRexpand(byte _sw_pinName, byte _mosfet_phase1, byte _mosfet_phase2)
@@ -156,24 +157,29 @@ void DRBlue::allOutputLow(){
   digitalWrite(PIN_SUPPORT_WHEEL_4,LOW);
 }
 
-
-void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool down)
+void PIDsetting::init()
 {
-  static int pid_setting_mode = 1;
-  static double Kp = 0.0, Ki = 0.0, Kd = 0.0;
-  static bool init_kp = true, init_ki = true, init_kd = true;
-  static bool flag_lcd = true;
+  flag_lcd = true;
+}
 
-  if(up)   pid_setting_mode++;
-  else if(down) pid_setting_mode--;
+void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool down,char moji[])
+{
+  static int pid_setting_mode;
+  static double kp, ki, kd;
+  static bool init_kp, init_ki, init_kd;
+
+  if(down)   pid_setting_mode++;
+  else if(up) pid_setting_mode--;
   if(pid_setting_mode == 0) pid_setting_mode = 3;
   else if(pid_setting_mode == 4) pid_setting_mode = 1;
   
   if(flag_lcd)
   { 
     LCD->clear_display();
-    LCD->write_str("RadianPID Setting",LINE_1,1);
+    LCD->write_str(moji,LINE_1,1);
     flag_lcd = false;
+    init_kp = true, init_ki = true, init_kd = true;
+    pid_setting_mode = 1;
   }
 
   switch (pid_setting_mode)
@@ -187,7 +193,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Kp));
       init_kp = false;
     }
-    Kp = 0.1*(double)encorder_count;
+    kp = 0.1*(double)encorder_count;
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
@@ -204,7 +210,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Ki));
       init_ki = false;
     }
-    Ki = 0.1*(double)encorder_count;
+    ki = 0.1*(double)encorder_count;
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
@@ -221,7 +227,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Kd));
       init_kd = false;
     }
-    Kd = 0.1*(double)encorder_count;
+    kd = 0.1*(double)encorder_count;
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
@@ -232,7 +238,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
   default:
     break;
   }
-  pid->setPara(Kp,Ki,Kd);
+  pid->setPara(kp,ki,kd);
 }
 
 
