@@ -24,7 +24,6 @@ class DRBlue{
 public:
     /*********** 変数宣言 ***********/
     coords position; //自己位置(x,y,z)
-    double roboAngle; //ロボットの姿勢(角度)
 
     /*********** 関数宣言 ***********/
     DRBlue(lpms_me1 *_lpms, phaseCounter *_enc1, phaseCounter *_enc2);
@@ -46,8 +45,8 @@ private:
     double encY_rad , encY , pre_encY;
     double x_axis_prime, y_axis_prime;
     double angle_rad;
-    double anlge_ofset;
-    double setAngleNum;
+    double pre_robotAngle;
+    double delta_posi_z;
 };
 
 class PIDsetting
@@ -56,7 +55,7 @@ public:
     PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
 
     void init();
-    void setting(double encorder_count, bool flag_500ms,bool up, bool down,char moji[]);
+    void setting(bool flag_500ms,bool up, bool down,char moji[]);
 private:
     PID *pid;
     myLCDclass *LCD;

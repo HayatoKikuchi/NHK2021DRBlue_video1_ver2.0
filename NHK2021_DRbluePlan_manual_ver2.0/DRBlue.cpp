@@ -8,11 +8,11 @@ DRBlue::DRBlue(lpms_me1 *_lpms, phaseCounter *_enc1, phaseCounter *_enc2)
 
   pre_encX = 0.0;
   pre_encY = 0.0;
+  pre_robotAngle = 0.0;
+  delta_posi_z = 0.0;
   position.x = 0.0;
   position.y = 0.0;
   position.z = 0.0;
-  anlge_ofset = 0.0;
-  setAngleNum = 0.0;
 }
 
 PIDsetting::PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder)
@@ -44,35 +44,40 @@ DRwall::DRwall(byte pinSW, byte pinSupport, int MDadress, RoboClaw *_roboclaw) :
 /****自己位置推定の関数****/
 void DRBlue::updateRobotPosition()
 {
-  
+  double present_posi_z;
   encX_rad = (double)enc1->getCount() * _2PI_RES4;
   encY_rad = (double)enc2->getCount() * _2PI_RES4;
-  roboAngle = ((double)lpms->get_z_angle() + anlge_ofset) + setAngleNum;
+  present_posi_z = (double)lpms->get_z_angle();
 
   encX = RADIUS_X * encX_rad;
   encY = RADIUS_Y * encY_rad;
   x_axis_prime = encX - pre_encX;
   y_axis_prime = encY - pre_encY;
+  delta_posi_z = present_posi_z - pre_robotAngle;
 
-  position.x += x_axis_prime*cos(roboAngle) - y_axis_prime*sin(roboAngle);
-  position.y += x_axis_prime*sin(roboAngle) + y_axis_prime*cos(roboAngle);
-  position.z = roboAngle;
+  position.z += delta_posi_z;
+  position.x += x_axis_prime*cos(position.z) - y_axis_prime*sin(position.z);
+  position.y += x_axis_prime*sin(position.z) + y_axis_prime*cos(position.z);
 
   pre_encX = encX;
   pre_encY = encY;
+  pre_robotAngle = present_posi_z;
 }
 
 void DRBlue::updateRoboAngle()
 {
-  roboAngle = (double)lpms->get_z_angle();
+  double present_posi_z;
+  present_posi_z = (double)lpms->get_z_angle();
+  delta_posi_z = present_posi_z - pre_robotAngle;
+  position.z += delta_posi_z;
+  pre_robotAngle = present_posi_z;
 }
 
-void DRBlue::setPosition(double x, double y, double z) // x[m]，y[m]，z[度]
+void DRBlue::setPosition(double x, double y, double z) // x[m]，y[m]，z[rad]
 {
   position.x = x;
   position.y = y;
-  anlge_ofset = -1*position.z;
-  position.z = roboAngle = setAngleNum = z/360.0 * 2.0 * PI_;
+  position.z = z;
 }
 
 void DRBlue::DRsetup()
@@ -162,25 +167,26 @@ void PIDsetting::init()
   flag_lcd = true;
 }
 
-void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool down,char moji[])
+void PIDsetting::setting(bool flag_500ms,bool up, bool down,char moji[])
 {
   static int pid_setting_mode;
   static double kp, ki, kd;
   static bool init_kp, init_ki, init_kd;
-
-  if(down)   pid_setting_mode++;
-  else if(up) pid_setting_mode--;
-  if(pid_setting_mode == 0) pid_setting_mode = 3;
-  else if(pid_setting_mode == 4) pid_setting_mode = 1;
   
   if(flag_lcd)
   { 
     LCD->clear_display();
     LCD->write_str(moji,LINE_1,1);
     flag_lcd = false;
-    init_kp = true, init_ki = true, init_kd = true;
+    init_kp = true;
+    kp = pid->Kp; ki = pid->Ki; kd = pid->Kd;
     pid_setting_mode = 1;
   }
+
+  if(down)   pid_setting_mode++;
+  else if(up) pid_setting_mode--;
+  if(pid_setting_mode == 0) pid_setting_mode = 3;
+  else if(pid_setting_mode == 4) pid_setting_mode = 1;
 
   switch (pid_setting_mode)
   {
@@ -193,7 +199,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Kp));
       init_kp = false;
     }
-    kp = 0.1*(double)encorder_count;
+    kp = 0.1*(double)encorder->getEncCount();
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
@@ -210,7 +216,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Ki));
       init_ki = false;
     }
-    ki = 0.1*(double)encorder_count;
+    ki = 0.1*(double)encorder->getEncCount();
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
@@ -227,7 +233,7 @@ void PIDsetting::setting(double encorder_count, bool flag_500ms,bool up, bool do
       encorder->setEncCount((int)(10.0 * pid->Kd));
       init_kd = false;
     }
-    kd = 0.1*(double)encorder_count;
+    kd = 0.1*(double)encorder->getEncCount();
     if(flag_500ms)
     {
       LCD->write_str("          ",LINE_3,4);
