@@ -29,12 +29,16 @@ public:
     DRBlue(lpms_me1 *_lpms, phaseCounter *_enc1, phaseCounter *_enc2);
     void updateRobotPosition(void); //自己推定を行う
     void updateRoboAngle(void); //ロボットの姿勢(角度)のみ取得
-    void setPosition(double x, double y, double z); //自己位置の初期化
-    void BasicSetup(void); //汎用基板の基本的なセットアップを行う
+    void setPosition(double x, double y); //自己位置の初期化
+    void setAngleOfset(double z_rad);
+    void init_positon(void); //汎用基板の基本的なセットアップを行う
     void DRsetup(void); //DRに関するセットアップを行う
     void allOutputLow(void); //全てのデジタル出力をLOWにする
     void LEDblink(byte pin, int times, int interval); //LEDを点滅させる
     void RGB_led(int period); //フルカラーLEDを奇麗に光らせる
+
+    coords getPosition();
+    coords getVel();
 
 private:
     /****自己位置推定用の変数****/
@@ -44,9 +48,7 @@ private:
     double encX_rad , encX  ,pre_encX;
     double encY_rad , encY , pre_encY;
     double x_axis_prime, y_axis_prime;
-    double angle_rad;
-    double pre_robotAngle;
-    double delta_posi_z;
+    double Angle_ofset;
 };
 
 class PIDsetting
@@ -55,7 +57,7 @@ public:
     PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
 
     void init();
-    void setting(bool flag_500ms,bool up, bool down,char moji[]);
+    void task(bool flag_500ms,bool up, bool down,char moji[],bool flag);
 private:
     PID *pid;
     myLCDclass *LCD;
