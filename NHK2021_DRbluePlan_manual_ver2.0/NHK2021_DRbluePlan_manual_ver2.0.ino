@@ -78,6 +78,7 @@ bool inner_area = false;
 coords GlobalVelPID = {0.0, 0.0, 0.0};
 coords refPIDsetting = {0.0, 0.0, 0.0};
 coords position;
+coords velocity;
 double vel_max;
 double expand_stop_seconds = 0.0;
 bool expand_stop_order = false;
