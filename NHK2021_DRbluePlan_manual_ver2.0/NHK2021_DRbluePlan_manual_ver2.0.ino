@@ -177,8 +177,8 @@ void setup()
 
   lcd.clear_display();
   lcd.color_red();
-  lcd.write_str("  Setting Time  ",LINE_2,0);
-  lcd.write_str("PUSH BUTTON_PS",LINE_3,1);
+  lcd.write_line("    Setting Time    ",LINE_2);
+  lcd.write_line("   PUSH BUTTON_PS   ",LINE_3);
   analogWrite(PIN_LED_RED,255);
   
   //PSボタンが押されるまで待機（ボード上のスイッチでも可）
