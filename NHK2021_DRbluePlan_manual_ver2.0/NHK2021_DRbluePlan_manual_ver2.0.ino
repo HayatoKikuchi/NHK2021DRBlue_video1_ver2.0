@@ -1,5 +1,5 @@
 //NHK学生ロボコン2021 DR青プランのマニュアル制御
-//最終更新　2021/02/24
+//最終更新　2021/05/15
 
 #include <Arduino.h>
 #include <MsTimer2.h>
